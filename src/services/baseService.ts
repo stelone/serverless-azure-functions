@@ -23,10 +23,10 @@ export abstract class BaseService {
     this.serviceName = serverless.service["service"];
     this.credentials = serverless.variables["azureCredentials"];
     this.subscriptionId = serverless.variables["subscriptionId"];
-    this.resourceGroup = this.getResourceGroupName();
-    this.deploymentName = serverless.service.provider["deploymentName"] || `${this.resourceGroup}-deployment`;
 
     this.setDefaultValues();
+    this.resourceGroup = this.getResourceGroupName();
+    this.deploymentName = serverless.service.provider["deploymentName"] || `${this.resourceGroup}-deployment`;
 
     if (!this.credentials && authenticate) {
       throw new Error(`Azure Credentials has not been set in ${this.constructor.name}`);
