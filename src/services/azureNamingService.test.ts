@@ -126,6 +126,13 @@ describe("Azure Naming Service", () => {
     expect(service.getPrefix()).toEqual("hello");
   });
 
+  it("should not generate deployment name longer than 64 characters", () => {
+    service = getService({
+      ...azureConfig,
+      service: ""
+    });
+  });
+
   describe("Resource names", () => {
 
     function assertValidStorageAccountName(config: ServerlessAzureConfig, value: string) {

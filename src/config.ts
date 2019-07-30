@@ -5,6 +5,8 @@ export const configConstants = {
     rollback: true,
     runFromBlobUrl: false,
   },
+  deploymentNameSuffix: "deployment",
+  artifactNameSuffix: "artifact",
   functionAppApiPath: "/api/",
   functionAppDomain: ".azurewebsites.net",
   functionsAdminApiPath: "/admin/functions/",

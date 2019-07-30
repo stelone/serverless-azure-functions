@@ -61,8 +61,14 @@ export class AzureNamingService {
    * Name of current ARM deployment
    */
   public getDeploymentName(): string {
-    const name = this.config.provider.deploymentName || `${this.getResourceGroupName()}-deployment`;
-    return this.rollbackConfiguredName(name);
+    const maxLength = 64;
+    // return this.safeName(64, null, false, true);
+    let name = this.config.provider.deploymentName || `${this.getResourceGroupName()}-deployment`;
+    name = this.rollbackConfiguredName(name);
+    if (name.length > maxLength) {
+      return this.safeName(maxLength, null, false, true, configConstants.deploymentNameSuffix);
+    }
+    return name;
   }
 
   /**
@@ -70,8 +76,8 @@ export class AzureNamingService {
    */
   public getArtifactName(deploymentName: string): string {
     return `${deploymentName
-      .replace("rg-deployment", "artifact")
-      .replace("deployment", "artifact")}.zip`;
+      .replace(`rg${configConstants.deploymentNameSuffix}`, configConstants.artifactNameSuffix)
+      .replace(configConstants.deploymentNameSuffix, configConstants.artifactNameSuffix)}.zip`;
   }
 
   /**
@@ -131,42 +137,46 @@ export class AzureNamingService {
   }
 
   private getStorageAccountName(): string {
-    return this.config.provider.storageAccount && this.config.provider.storageAccount.name
-      ? this.config.provider.storageAccount.name
-      : this.getDefaultStorageAccountName()
+    const { storageAccount } = this.config.provider;
+    return storageAccount && storageAccount.name
+      ? storageAccount.name
+      : this.safeName(24, /\W+/g);
   }
 
   private getVirtualNetworkName(): string {
     return this.getConfiguredName(this.config.provider.virtualNetwork, "vnet");
   }
 
-  /**
-   * Gets a default storage account name.
-   * Storage account names can have at most 24 characters and can have only alpha-numerics
-   * @param this.config Serverless Azure this.config
-   */
-  private getDefaultStorageAccountName(): string {
-    const maxAccountNameLength = 24;
-    const nameHash = md5(this.config.service);
-    const replacer = /\W+/g;
+  private safeName(maxLength: number, replacer?: RegExp, delimiter = "",
+    useNameHash = true, includeTimestamp = false, suffix = "") {
+    const name = (useNameHash) ? md5(this.config.service) : this.config.service;
 
-    let safePrefix = this.config.provider.prefix.replace(replacer, "");
-    const safeRegion = Utils.createShortAzureRegionName(this.config.provider.region);
-    let safeStage = Utils.createShortStageName(this.config.provider.stage);
-    let safeNameHash = nameHash.substr(0, 6);
+    const { prefix, region, stage } = this.config.provider
 
-    const remaining = maxAccountNameLength - (safePrefix.length + safeRegion.length + safeStage.length + safeNameHash.length);
+    let safePrefix = (replacer) ? prefix.replace(replacer, "") : prefix;
+    const safeRegion = Utils.createShortAzureRegionName(region);
+    let safeStage = Utils.createShortStageName(stage);
+    let safeName = name.substr(0, 6);
+
+    const timestamp = (includeTimestamp) ? `t${this.getTimestamp()}` : "";
+
+    const remaining = maxLength - (safePrefix.length + safeRegion.length +
+      safeStage.length + safeName.length + suffix.length + timestamp.length);
 
     // Dynamically adjust the substring based on space needed
     if (remaining < 0) {
       const partLength = Math.floor(Math.abs(remaining) / 3);
       safePrefix = safePrefix.substr(0, partLength);
       safeStage = safeStage.substr(0, partLength);
-      safeNameHash = safeNameHash.substr(0, partLength);
+      safeName = safeName.substr(0, partLength);
     }
 
-    return [safePrefix, safeRegion, safeStage, safeNameHash]
-      .join("")
+    if (remaining > 0) {
+      safeName = name.substr(0, remaining + safeName.length - 1);
+    }
+
+    return [safePrefix, safeRegion, safeStage, safeName, suffix, timestamp]
+      .join(delimiter)
       .toLocaleLowerCase();
   }
 
