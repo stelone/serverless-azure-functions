@@ -3,7 +3,8 @@ import { AzureLoginService } from "../../services/loginService";
 import { MockFactory } from "../../test/mockFactory";
 import { invokeHook, setEnvVariables, unsetEnvVariables } from "../../test/utils";
 import { AzureLoginPlugin } from "./azureLoginPlugin";
-import { loginHooks } from "./loginHooks";
+import { SimpleFileTokenCache } from "./utils/simpleFileTokenCache";
+import { InteractiveLoginOptions } from "@azure/ms-rest-nodeauth";
 
 describe("Login Plugin", () => {
 
@@ -11,12 +12,13 @@ describe("Login Plugin", () => {
   const envVariables = MockFactory.createTestServicePrincipalEnvVariables()
   const credentials = MockFactory.createTestVariables().azureCredentials;
 
-  function createPlugin(hasCreds = false, serverless?: Serverless, options?: Serverless.Options): AzureLoginPlugin {
+  function createPlugin(hasCreds = false, serverless?: Serverless): AzureLoginPlugin {
     const sls = serverless || MockFactory.createTestServerless();
     if (!hasCreds) {
       delete sls.variables["azureCredentials"];
     }
-    return new AzureLoginPlugin(sls, options || MockFactory.createTestServerlessOptions());
+    const options = MockFactory.createTestServerlessOptions();
+    return new AzureLoginPlugin(sls, options);
   }
 
   function createMockLoginFunction() {
@@ -31,98 +33,73 @@ describe("Login Plugin", () => {
     unsetEnvVariables(envVariables);
   }
 
-  async function invokeLoginHook(hasCreds = false, serverless?: Serverless, options?: Serverless.Options) {
-    const plugin = createPlugin(hasCreds, serverless, options);
-    await invokeHook(plugin, `before:${loginHooks[0]}`);
+  async function invokeLoginHook(hasCreds = false, serverless?: Serverless) {
+    const plugin = createPlugin(hasCreds, serverless);
+    await invokeHook(plugin, "before:package:initialize");
   }
 
-  beforeEach(() => {
-    AzureLoginService.interactiveLogin = createMockLoginFunction();
-    AzureLoginService.servicePrincipalLogin = createMockLoginFunction();
-  });
+  // beforeEach(() => {
+  //   AzureLoginService.interactiveLogin = createMockLoginFunction();
+  //   AzureLoginService.servicePrincipalLogin = createMockLoginFunction();
+  // });
 
-  it("contains the hooks as contained in loginHooks", () => {
-    expect(Object.keys(createPlugin().hooks)).toEqual(loginHooks.map((hook) => `before:${hook}`));
-  });
+  // it("returns if azure credentials are set", async () => {
+  //   await invokeLoginHook(true);
+  //   expect(AzureLoginService.interactiveLogin).not.toBeCalled();
+  //   expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
+  // });
 
-  it("returns if azure credentials are set", async () => {
-    await invokeLoginHook(true);
-    expect(AzureLoginService.interactiveLogin).not.toBeCalled();
-    expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
-  });
+  // it.skip("calls login if azure credentials are not set", async () => {
+  //   await invokeLoginHook();
+  //   expect(AzureLoginService.interactiveLogin).toBeCalled();
+  //   expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
+  // });
 
-  it("calls login if azure credentials are not set", async () => {
-    await invokeLoginHook();
-    expect(AzureLoginService.interactiveLogin).toBeCalled();
-    expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
-  });
+  // it.skip("calls service principal login if environment variables are set", async () => {
+  //   setServicePrincipalEnvVariables();
+  //   const sls = MockFactory.createTestServerless();
+  //   await invokeLoginHook(false, sls);
+  //   expect(AzureLoginService.servicePrincipalLogin).toBeCalledWith(
+  //     "azureServicePrincipalClientId",
+  //     "azureServicePrincipalPassword",
+  //     "azureServicePrincipalTenantId"
+  //   )
+  //   expect(AzureLoginService.interactiveLogin).not.toBeCalled();
+  //   expect(sls.variables["azureCredentials"]).toEqual(credentials);
+  //   expect(sls.variables["subscriptionId"]).toEqual("azureSubId");
+  // });
 
-  it("calls service principal login if environment variables are set", async () => {
-    setServicePrincipalEnvVariables();
-    const sls = MockFactory.createTestServerless();
-    await invokeLoginHook(false, sls);
-    expect(AzureLoginService.servicePrincipalLogin).toBeCalledWith(
-      "azureServicePrincipalClientId",
-      "azureServicePrincipalPassword",
-      "azureServicePrincipalTenantId",
-      undefined // would be options
-    )
-    expect(AzureLoginService.interactiveLogin).not.toBeCalled();
-    expect(sls.variables["azureCredentials"]).toEqual(credentials);
-    expect(sls.variables["subscriptionId"]).toEqual("azureSubId");
-  });
+  // it.skip("calls interactive login if environment variables are not set", async () => {
+  //   unsetServicePrincipalEnvVariables();
+  //   const sls = MockFactory.createTestServerless();
+  //   await invokeLoginHook(false, sls);
+  //   expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
+  //   expect(AzureLoginService.interactiveLogin).toBeCalled();
+  //   expect(sls.variables["azureCredentials"]).toEqual(credentials);
+  //   expect(sls.variables["subscriptionId"]).toEqual("azureSubId");
+  // });
 
-  it("calls interactive login if environment variables are not set", async () => {
-    unsetServicePrincipalEnvVariables();
-    const sls = MockFactory.createTestServerless();
-    await invokeLoginHook(false, sls);
-    expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
-    expect(AzureLoginService.interactiveLogin).toBeCalled();
-    expect(sls.variables["azureCredentials"]).toEqual(credentials);
-    expect(sls.variables["subscriptionId"]).toEqual("azureSubId");
-  });
+  // it.skip("logs an error from authentication", async () => {
+  //   unsetServicePrincipalEnvVariables();
+  //   const errorMessage = "This is my error message";
+  //   AzureLoginService.interactiveLogin = jest.fn(() => {
+  //     throw new Error(errorMessage);
+  //   });
+  //   const sls = MockFactory.createTestServerless();
+  //   await invokeLoginHook(false, sls);
+  //   expect(AzureLoginService.interactiveLogin).toBeCalled()
+  //   expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
+  //   expect(sls.cli.log).lastCalledWith(`Error: ${errorMessage}`)
+  // });
 
-  it("logs an error from authentication and exits process", async () => {
-    unsetServicePrincipalEnvVariables();
-    process.exit = jest.fn() as any;
-    const errorMessage = "This is my error message";
-    AzureLoginService.interactiveLogin = jest.fn(() => {
-      throw new Error(errorMessage);
+  it("login", async () => {
+    jest.setTimeout(60000);
+    let tokenCache = new SimpleFileTokenCache();
+    let subscription = [];
+    tokenCache.find("subscriptions", (ignore, res) => {
+      subscription = res;
     });
-    const sls = MockFactory.createTestServerless();
-    await invokeLoginHook(false, sls);
-    expect(AzureLoginService.interactiveLogin).toBeCalled()
-    expect(AzureLoginService.servicePrincipalLogin).not.toBeCalled();
-    expect(sls.cli.log).lastCalledWith(`Error: ${errorMessage}`);
-    expect(process.exit).toBeCalledWith(0);
+    let iOptions = {tokenCache, subscription} as InteractiveLoginOptions;
+    await AzureLoginService.login({}, iOptions);
   });
-
-  it("Uses the user specified subscription ID", async () => {
-    const sls = MockFactory.createTestServerless();
-    const opt = MockFactory.createTestServerlessOptions();
-    opt["subscriptionId"] = "test-subs-id";
-    await invokeLoginHook(false, sls, opt);
-    expect(AzureLoginService.interactiveLogin).toBeCalled()
-    expect(sls.variables["subscriptionId"]).toEqual("test-subs-id");
-    expect(sls.cli.log).toBeCalledWith("Using subscription ID: test-subs-id");
-  });
-
-  it("Uses the default subscription ID" , async () => {
-    const sls = MockFactory.createTestServerless();
-    const opt = MockFactory.createTestServerlessOptions();
-    await invokeLoginHook(false, sls, opt);
-    expect(AzureLoginService.interactiveLogin).toBeCalled()
-    expect(sls.variables["subscriptionId"]).toEqual("azureSubId");
-    expect(sls.cli.log).toBeCalledWith("Using subscription ID: azureSubId");
-  });
-  
-  it("Uses the subscription ID specified in serverless yaml", async () => {
-    const sls = MockFactory.createTestServerless();
-    const opt = MockFactory.createTestServerlessOptions();
-    sls.service.provider["subscriptionId"] = "test-subs-id";
-    await invokeLoginHook(false, sls, opt);
-    expect(AzureLoginService.interactiveLogin).toBeCalled()
-    expect(sls.variables["subscriptionId"]).toEqual("test-subs-id");
-    expect(sls.cli.log).toBeCalledWith("Using subscription ID: test-subs-id");
-  });
-});
+})
