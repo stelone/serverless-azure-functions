@@ -46,6 +46,7 @@ describe("Azure Func Service", () => {
 
     it("returns with pre-existing function", async () => {
       const sls = MockFactory.createTestServerless();
+      const test = "test";
       const options = MockFactory.createTestServerlessOptions();
       options["name"] = "hello";
 
