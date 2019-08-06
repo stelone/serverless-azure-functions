@@ -15,12 +15,9 @@ git pull origin ${SOURCE_BRANCH_NAME}
 git checkout ${SOURCE_BRANCH_NAME}
 echo Checked out branch: ${SOURCE_BRANCH_NAME}
 
-NPM_VERSION=`npm version ${NPM_RELEASE_TYPE}`
+NPM_VERSION=`npm version ${NPM_RELEASE_TYPE} -m "Update to version ${NPM_RELEASE_TYPE} ***NO_CI***"`
 echo Set NPM version to: ${NPM_VERSION}
 
-# Stage update to package.json files
-git add package.json
-git add package-lock.json
 
 # Since there isn't a package.json at the root of repo
 # and we have multiple packages within same repo
