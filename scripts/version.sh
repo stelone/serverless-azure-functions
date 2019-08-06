@@ -26,7 +26,7 @@ echo Set NPM version to: ${NPM_VERSION}
 SHA=`git rev-parse HEAD`
 
 echo Tagging package with: ${PACKAGE_NAME}-${NPM_VERSION}
-git tag ${PACKAGE_NAME}-${NPM_VERSION}
+git tag ${NPM_VERSION}
 
 echo Authenticating with GitHub
 git remote add authOrigin https://${GITHUB_ACCESS_TOKEN}@github.com/serverless/serverless-azure-functions.git
