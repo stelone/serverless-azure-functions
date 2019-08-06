@@ -25,7 +25,7 @@ echo Set NPM version to: ${NPM_VERSION}
 # git commit -m "Bumping NPM package ${PACKAGE_NAME} prerelease to version ${NPM_VERSION} ***NO_CI***"
 SHA=`git rev-parse HEAD`
 
-echo Tagging package with: ${PACKAGE_NAME}-${NPM_VERSION}
+echo Tagging package ${PACKAGE_NAME} with ${NPM_VERSION}
 git tag ${NPM_VERSION}
 
 echo Authenticating with GitHub
