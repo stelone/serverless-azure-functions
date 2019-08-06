@@ -25,9 +25,8 @@ echo Set NPM version to: ${NPM_VERSION}
 # git commit -m "Bumping NPM package ${PACKAGE_NAME} prerelease to version ${NPM_VERSION} ***NO_CI***"
 SHA=`git rev-parse HEAD`
 
-GIT_TAG = ${PACKAGE_NAME}-${NPM_VERSION}
-echo Tagging package with: ${GIT_TAG}
-git tag ${GIT_TAG}
+echo Tagging package with: ${PACKAGE_NAME}-${NPM_VERSION}
+git tag ${PACKAGE_NAME}-${NPM_VERSION}
 
 echo Authenticating with GitHub
 git remote add authOrigin https://${GITHUB_ACCESS_TOKEN}@github.com/serverless/serverless-azure-functions.git
