@@ -28,9 +28,13 @@ git add package-lock.json
 git commit -m "Bumping NPM package ${PACKAGE_NAME} prerelease to version ${NPM_VERSION} ***NO_CI***"
 SHA=`git rev-parse HEAD`
 
-git tag ${PACKAGE_NAME}-${NPM_VERSION}
+GIT_TAG = ${PACKAGE_NAME}-${NPM_VERSION}
+echo Tagging package with: ${GIT_TAG}
+git tag ${GIT_TAG}
 
-git remote add authOrigin https://sls-az-func:${GITHUB_ACCESS_TOKEN}@github.com/serverless/serverless-azure-functions.git
+echo Authenticating with GitHub
+git remote add authOrigin https://${GITHUB_ACCESS_TOKEN}@github.com/serverless/serverless-azure-functions.git
+echo Authenticated with GitHub
 git push authOrigin ${SOURCE_BRANCH_NAME} --tags
 
 echo Pushed new tag: ${PACKAGE_NAME}-${NPM_VERSION} @ SHA: ${SHA:0:8}
