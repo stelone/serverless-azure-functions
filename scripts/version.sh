@@ -29,6 +29,8 @@ git commit -m "Bumping NPM package ${PACKAGE_NAME} prerelease to version ${NPM_V
 SHA=`git rev-parse HEAD`
 
 git tag ${PACKAGE_NAME}-${NPM_VERSION}
-git push origin ${SOURCE_BRANCH_NAME} --tags
+
+git remote add authOrigin https://sls-az-func:${GITHUB_ACCESS_TOKEN}@github.com/serverless/serverless-azure-functions.git
+git push authOrigin ${SOURCE_BRANCH_NAME} --tags
 
 echo Pushed new tag: ${PACKAGE_NAME}-${NPM_VERSION} @ SHA: ${SHA:0:8}
