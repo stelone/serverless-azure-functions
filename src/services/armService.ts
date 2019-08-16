@@ -65,10 +65,7 @@ export class ArmService extends BaseService {
         ...apimTemplate.resources,
         
       ];
-      mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = {
-        name: "WEBSITE_NODE_DEFAULT_VERSION",
-        value: "10.15.2"
-      };
+      
       parameters = {
         ...parameters,
         ...apimParameters,
