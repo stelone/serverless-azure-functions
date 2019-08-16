@@ -40,7 +40,18 @@ export class ArmService extends BaseService {
 
     const mergedTemplate = template.getTemplate();
     let parameters = template.getParameters(azureConfig);
-
+    this.log(JSON.stringify(mergedTemplate.resources[0].properties.siteConfig.appSettings[5], null, 4));
+    this.log(JSON.stringify(this.config.provider["runtime"]));
+    if(this.config.provider["runtime"]){
+      this.log(JSON.stringify(this.config.provider["runtime"]));
+      mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = { 
+        "name": "WEBSITE_NODE_DEFAULT_VERSION",
+        "value": this.config.provider["runtime"]
+      };
+    }
+    this.log("**********************************************");
+    this.log(JSON.stringify(mergedTemplate.resources[0].properties.siteConfig.appSettings[5], null, 4));
+    
     if (this.config.provider.apim) {
       const apimTemplate = apimResource.getTemplate();
       const apimParameters = apimResource.getParameters(azureConfig);
@@ -52,8 +63,12 @@ export class ArmService extends BaseService {
       mergedTemplate.resources = [
         ...mergedTemplate.resources,
         ...apimTemplate.resources,
+        
       ];
-
+      mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = {
+        name: "WEBSITE_NODE_DEFAULT_VERSION",
+        value: "10.15.2"
+      };
       parameters = {
         ...parameters,
         ...apimParameters,
@@ -76,7 +91,6 @@ export class ArmService extends BaseService {
     this.log(`-> Creating ARM template from file: ${armTemplateConfig.file}`);
     const templateFilePath = path.join(this.serverless.config.servicePath, armTemplateConfig.file);
     const template = JSON.parse(fs.readFileSync(templateFilePath, "utf8"));
-
     return Promise.resolve({
       template,
       parameters: armTemplateConfig.parameters
