@@ -65,7 +65,6 @@ export class ArmService extends BaseService {
         ...apimTemplate.resources,
         
       ];
-      
       parameters = {
         ...parameters,
         ...apimParameters,
