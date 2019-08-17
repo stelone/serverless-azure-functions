@@ -43,6 +43,13 @@ export class ArmService extends BaseService {
     const mergedTemplate = template.getTemplate();
     let parameters = template.getParameters(azureConfig);
 
+    if(this.config.provider["runtime"]){
+      mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = { 
+        "name": "WEBSITE_NODE_DEFAULT_VERSION",
+        "value": this.config.provider["runtime"]
+      };
+    }
+    
     if (this.config.provider.apim) {
       const apimTemplate = apimResource.getTemplate();
       const apimParameters = apimResource.getParameters(azureConfig);
