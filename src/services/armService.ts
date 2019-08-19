@@ -11,6 +11,8 @@ import { BaseService } from "./baseService";
 import { ResourceService } from "./resourceService"
 import deepEqual from "deep-equal";
 
+const nodeVersions = require("./nodeVersion.json");
+
 export class ArmService extends BaseService {
   private resourceClient: ResourceManagementClient;
 
@@ -43,11 +45,15 @@ export class ArmService extends BaseService {
     const mergedTemplate = template.getTemplate();
     let parameters = template.getParameters(azureConfig);
 
+    
     if(this.config.provider["runtime"]){
-      mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = { 
-        "name": "WEBSITE_NODE_DEFAULT_VERSION",
-        "value": this.config.provider["runtime"]
-      };
+      if(!this.checkNodeVerion(this.config.provider["runtime"])){
+        throw new Error("Invalid Node.js version");
+      }
+      // mergedTemplate.resources[0].properties.siteConfig.appSettings[5] = { 
+      //   "name": "WEBSITE_NODE_DEFAULT_VERSION",
+      //   "value": this.config.provider["runtime"]
+      // };
     }
     
     if (this.config.provider.apim) {
@@ -197,4 +203,13 @@ export class ArmService extends BaseService {
       });
     }
   }
+
+  private checkNodeVerion(version: String): boolean{
+    const object = nodeVersions["nodejs"];
+    for(const nodeVersion of object){
+      if(nodeVersion["version"] == version)
+        return true;
+    }
+    return false;
+  } 
 }
