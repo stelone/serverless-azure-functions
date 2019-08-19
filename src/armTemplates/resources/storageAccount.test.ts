@@ -1,8 +1,12 @@
 import { ServerlessAzureConfig } from "../../models/serverless";
 import { AzureNamingService } from "../../services/namingService";
 import { StorageAccountResource } from "./storageAccount";
+import md5 from "md5";
 
 describe("Storage Account Resource", () => {
+
+  const resourceGroup = "myResourceGroup";
+
   const config: ServerlessAzureConfig = {
     functions: [],
     plugins: [],
@@ -11,6 +15,7 @@ describe("Storage Account Resource", () => {
       name: "azure",
       region: "westus",
       stage: "dev",
+      resourceGroup,
     },
     service: "test-api"
   }

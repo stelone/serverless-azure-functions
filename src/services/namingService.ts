@@ -1,6 +1,7 @@
 import { ServerlessAzureConfig, ResourceConfig } from "../models/serverless"
 import { Guard } from "../shared/guard"
 import configConstants from "../config";
+import md5 from "md5";
 
 export class AzureNamingService {
 
@@ -45,7 +46,9 @@ export class AzureNamingService {
    * @param forbidden Regex for characters to remove from name. Defaults to non-alpha-numerics
    * @param replaceWith String to replace forbidden characters. Defaults to empty string
    */
-  public static getSafeResourceName(config: ServerlessAzureConfig, maxLength: number, resourceConfig?: ResourceConfig, suffix: string = "", forbidden: RegExp = /\W+/g, replaceWith: string = "") {
+  public static getSafeResourceName(config: ServerlessAzureConfig, maxLength: number, resourceConfig?: ResourceConfig, suffix: string = "") {
+    const nonAlphaNumeric = /\W+/g;
+
     if (resourceConfig && resourceConfig.name) {
       const { name } = resourceConfig;
 
@@ -53,15 +56,17 @@ export class AzureNamingService {
         throw new Error(`Name '${name}' invalid. Should be shorter than ${maxLength} characters`);
       }
 
-      return name.replace(forbidden, replaceWith);
+      return name.replace(nonAlphaNumeric, "");
     }
+
+    suffix = suffix || md5(config.provider.resourceGroup);
 
     const { prefix, region, stage } = config.provider;
 
-    let safePrefix = prefix.replace(forbidden, replaceWith);
+    let safePrefix = prefix.replace(nonAlphaNumeric, "");
     const safeRegion = this.createShortAzureRegionName(region);
     let safeStage = this.createShortStageName(stage);
-    let safeSuffix = suffix.replace(forbidden, replaceWith);
+    let safeSuffix = suffix.replace(nonAlphaNumeric, "");
 
     const remaining = maxLength - (safePrefix.length + safeRegion.length + safeStage.length + safeSuffix.length);
 
@@ -74,12 +79,33 @@ export class AzureNamingService {
 
       safePrefix = safePrefix.substr(0, partLength);
       safeStage = safeStage.substr(0, partLength);
-      safeSuffix = safeSuffix.substr(0, partLength);
     }
 
-    return [safePrefix, safeRegion, safeStage, safeSuffix]
+    const nameWithoutSuffix = [safePrefix, safeRegion, safeStage]
+      .join("");
+
+    safeSuffix = safeSuffix.substr(0, maxLength - nameWithoutSuffix.length);
+
+    return [nameWithoutSuffix, safeSuffix]
       .join("")
       .toLowerCase();
+  }
+
+  /**
+   *
+   * @param config
+   * @param length
+   * @param resourceConfig
+   */
+  public static getSafeResourceNameHash(config: ServerlessAzureConfig, length?: number, resourceConfig?: ResourceConfig) {
+    if (resourceConfig && resourceConfig.name) {
+      const { name } = resourceConfig;
+      if (length && name.length > length) {
+        throw new Error(`Name '${name}' invalid. Should be shorter than ${length} characters`);
+      }
+      return name;
+    }
+    return md5(config.provider.resourceGroup).substr(0, length);
   }
 
   /**
