@@ -1,5 +1,6 @@
 import { AzureNamingService } from "./namingService"
 import { ServerlessAzureConfig } from "../models/serverless";
+import configConstants from "../config";
 
 describe("Naming Service", () => {
   it("Creates a short name for an azure region", () => {
@@ -108,6 +109,7 @@ describe("Naming Service", () => {
   });
 
   it("deployment name with long suffix or service name generated correctly", () => {
+    const maxLength = configConstants.naming.maxLength.deploymentName;
     const config: ServerlessAzureConfig = {
       functions: [],
       plugins: [],
@@ -123,7 +125,11 @@ describe("Naming Service", () => {
     const timestamp = Date.now();
     const deploymentName = AzureNamingService.getDeploymentName(config, `t${timestamp}`);
 
-    expect(deploymentName).toEqual(`slswusmulext-DEPLOYMENT-t${timestamp}`);
+    const safePrefix = config.provider.prefix.replace(/\W+/g, "")
+    const nameWithoutSuffix = `${safePrefix}wusmul-DEPLOYMENT-t${timestamp}`
+    const safeSuffix = config.service.replace(/\W+/g, "");
+    expect(deploymentName).toEqual(`${safePrefix}wusmul${safeSuffix.substr(
+      0, maxLength - nameWithoutSuffix.length)}-DEPLOYMENT-t${timestamp}`);
     assertValidDeploymentName(config, deploymentName, timestamp);
   });
 

@@ -1,6 +1,7 @@
 import { ServerlessAzureConfig, ResourceConfig } from "../models/serverless"
 import { Guard } from "../shared/guard"
 import configConstants from "../config";
+import md5 from "md5";
 
 export class AzureNamingService {
 
@@ -45,7 +46,7 @@ export class AzureNamingService {
    * @param forbidden Regex for characters to remove from name. Defaults to non-alpha-numerics
    * @param replaceWith String to replace forbidden characters. Defaults to empty string
    */
-  public static getSafeResourceName(config: ServerlessAzureConfig, maxLength: number, resourceConfig?: ResourceConfig, suffix: string = "", forbidden: RegExp = /\W+/g, replaceWith: string = "") {
+  public static getSafeResourceName(config: ServerlessAzureConfig, maxLength: number, resourceConfig?: ResourceConfig, suffix?: string, forbidden: RegExp = /\W+/g, replaceWith: string = "") {
     if (resourceConfig && resourceConfig.name) {
       const { name } = resourceConfig;
 
@@ -56,6 +57,10 @@ export class AzureNamingService {
       return name.replace(forbidden, replaceWith);
     }
 
+    if (!suffix) {
+      suffix = md5(config.provider.resourceGroup);
+    }
+
     const { prefix, region, stage } = config.provider;
 
     let safePrefix = prefix.replace(forbidden, replaceWith);
@@ -63,19 +68,15 @@ export class AzureNamingService {
     let safeStage = this.createShortStageName(stage);
     let safeSuffix = suffix.replace(forbidden, replaceWith);
 
-    const remaining = maxLength - (safePrefix.length + safeRegion.length + safeStage.length + safeSuffix.length);
-
-    // Dynamically adjust the substring based on space needed
-    if (remaining < 0) {
-      let partLength = Math.floor(Math.abs(remaining) / 4);
-      if (partLength < 3) {
-        partLength = 3;
-      }
-
-      safePrefix = safePrefix.substr(0, partLength);
-      safeStage = safeStage.substr(0, partLength);
-      safeSuffix = safeSuffix.substr(0, partLength);
-    }
+    // Region and stage most important to get whole name
+    let remaining = maxLength - (safeStage.length + safeRegion.length);
+    // Divide remaining characters between prefix and suffix
+    const partLength = Math.floor(Math.abs(remaining) / 2);
+    // Allocate half of the remaining characters for the prefix
+    safePrefix = safePrefix.substr(0, partLength);
+    // If prefix doesn't use all of the characters, the suffix will use the rest
+    remaining -= safePrefix.length;
+    safeSuffix = safeSuffix.substr(0, remaining);
 
     return [safePrefix, safeRegion, safeStage, safeSuffix]
       .join("")
@@ -98,7 +99,8 @@ export class AzureNamingService {
 
       const name = (deploymentName)
         ? deploymentName.substr(0, maxLength)
-        : [AzureNamingService.getSafeResourceName(config, maxLength, null, config.service), suffix].join("-");
+        // -2 to account for `-`
+        : [AzureNamingService.getSafeResourceName(config, maxLength - 2, null, config.service), suffix].join("-");
 
       return [name, timestamp].join("-");
     }

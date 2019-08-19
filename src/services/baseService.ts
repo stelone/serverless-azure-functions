@@ -40,6 +40,7 @@ export abstract class BaseService {
     this.serviceName = this.getServiceName();
     this.config = serverless.service as any;
     this.credentials = serverless.variables["azureCredentials"];
+    this.config.provider.resourceGroup = this.config.provider.resourceGroup || this.getResourceGroupName();
     this.subscriptionId = serverless.variables["subscriptionId"];
     this.resourceGroup = this.getResourceGroupName();
     this.deploymentConfig = this.getDeploymentConfig();
